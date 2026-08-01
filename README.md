@@ -1,6 +1,6 @@
 #  🥔 **WorstOS**
 
-> *The operating system that HATES works against you.*
+> *The operating system that HATES you.*
 
 WorstOS is a bum ahh operating system built to make every interaction as frustrating, confusing, and inconvenient as possible.
 
