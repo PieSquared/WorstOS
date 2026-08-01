@@ -1,12 +1,9 @@
-#  🥔**WorstOS**
+#  🥔 **WorstOS**
 
-> *The operating system that actively works against you.*
+> *The operating system that HATES works against you.*
 
-WorstOS is a deliberately terrible operating system built to make every interaction as frustrating, confusing, and inconvenient as possible.
+WorstOS is a bum ahh operating system built to make every interaction as frustrating, confusing, and inconvenient as possible.
 
-It isn't designed to be fast.
-It isn't designed to be useful.
-It isn't even designed to make sense.
 ---
 
 
@@ -29,8 +26,6 @@ It isn't even designed to make sense.
 ##  **Warning**
 
 > WorstOS is  terrible.
-
-If something is annoying, confusing, or completely broken-looking... it's probably a feature.
 
 ---
 
