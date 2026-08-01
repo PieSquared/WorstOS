@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>WorstOS™ — Booting (allegedly)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  :root{
+    --green:#39ff14;
+    --red:#c00000;
+    --win-gray:#c0c0c0;
+    --win-blue:#000080;
+    --win-blue-light:#1084d0;
+    --win-teal:#008080;
+  }
+  *{box-sizing:border-box; user-select:none;}
+  html,body{margin:0; height:100%; width:100%; overflow:hidden;}
+  body{
+    background-color:var(--win-teal);
+    background-image: repeating-linear-gradient(45deg, rgba(255,255,255,0.05) 0, rgba(255,255,255,0.05) 2px, transparent 2px, transparent 16px);
+    font-family:'Tahoma','MS Sans Serif',Arial,sans-serif;
+  }
+
+  #captchaGate, #boot{
+    position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+  }
+  #boot{ display:none; }
+
+  /* lil windows 95 theme */
+  .window{
+    width:360px; background:var(--win-gray);
+    border:2px solid; border-color:#fff #555 #555 #fff;
+    box-shadow:1px 1px 0 #000, 5px 5px 14px rgba(0,0,0,0.45);
+    animation: fadeUp 0.4s ease-out;
+  }
+  @keyframes fadeUp{
+    from{ opacity:0; transform:translateY(14px) scale(0.98); }
+    to{ opacity:1; transform:translateY(0) scale(1); }
+  }
+  .titlebar{
+    background:linear-gradient(90deg, var(--win-blue), var(--win-blue-light));
+    color:#fff; font-weight:bold; font-size:13px; padding:4px 5px 4px 8px;
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  .titlebar .ttl{display:flex; align-items:center; gap:6px;}
+  .title-btns{display:flex; gap:2px;}
+  .title-btns span{
+    width:16px; height:14px; background:var(--win-gray); border:1px solid;
+    border-color:#fff #555 #555 #fff; font-size:9px; line-height:1;
+    display:flex; align-items:center; justify-content:center; color:#000; font-weight:bold;
+  }
+  .window-body{ padding:16px 18px; text-align:center; }
+
+  .logo-frame{
+    width:64px; height:64px; margin:0 auto 8px; background:#fff;
+    border:2px solid; border-color:#555 #fff #fff #555;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .logo{ width:44px; height:44px; image-rendering:pixelated; }
+  .logo-fallback{ font-size:32px; line-height:1; }
+
+  h1.wordmark{
+    font-family:'Comic Sans MS','Comic Sans',cursive,sans-serif;
+    color:var(--win-blue); font-size:1.8em; margin:2px 0 4px;
+    text-shadow:1px 1px 0 #fff;
+  }
+  .sub{ color:#333; font-size:0.78em; margin-bottom:10px; }
+
+  .console{
+    background:#000; color:var(--green); font-family:'Courier New', monospace;
+    font-size:11px; text-align:left; padding:8px; margin:8px 0 12px;
+    border:2px solid; border-color:#555 #fff #fff #555; min-height:44px; line-height:1.5;
+  }
+  .console .specs{ color:#2fae12; }
+  .console .status-line{ color:var(--green); }
+  .cursor-blink{ display:inline-block; margin-left:2px; animation: blink 1s step-start infinite; }
+  @keyframes blink{ 50%{ opacity:0; } }
+
+  .bar-outer{
+    width:100%; height:22px; padding:2px; background:#fff;
+    border:2px solid; border-color:#555 #fff #fff #555;
+  }
+  .bar-inner{
+    height:100%; width:0%; background-color:var(--win-blue);
+    background-image: repeating-linear-gradient(90deg, var(--win-blue-light) 0 7px, var(--win-blue) 7px 9px);
+    transition:width 0.15s linear;
+  }
+  .pct-row{ display:flex; justify-content:flex-end; font-size:11px; color:#333; margin-top:3px; }
+
+  .alert-row{
+    display:flex; align-items:center; gap:8px; text-align:left; margin-top:14px;
+    background:#fff; border:2px solid; border-color:#555 #fff #fff #555; padding:6px 8px;
+  }
+  .alert-icon{ font-size:20px; }
+  .alert-text{ font-size:11px; color:var(--red); font-weight:bold; animation:pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse{ 0%,100%{ opacity:1; } 50%{ opacity:0.5; } }
+
+  .continue-btn{
+    margin-top:18px; padding:6px 20px; font-family:'Tahoma','MS Sans Serif',Arial,sans-serif;
+    background:var(--win-gray); border:2px solid; border-color:#fff #555 #555 #fff;
+    cursor:pointer; font-size:12px; position:relative;
+  }
+  .continue-btn:active{ border-color:#555 #fff #fff #555; }
+
+  /* captcha looking thing */
+  .recaptcha{
+    background:#fff; border:2px solid; border-color:#555 #fff #fff #555;
+    padding:12px 14px; display:flex; align-items:center; gap:12px;
+    text-align:left; position:relative;
+  }
+  .dodge-zone{ width:34px; height:34px; flex:0 0 auto; display:flex; align-items:center; justify-content:center; }
+  #robotCheck{
+    -webkit-appearance:none; appearance:none;
+    width:24px; height:24px; margin:0; border:2px solid #777; background:#fff; cursor:pointer;
+    transition:transform 0.12s ease-out;
+  }
+  #robotCheck:hover{ transform:translate(38px, -20px) rotate(10deg); }
+  #robotCheck:checked{ background:var(--green); }
+  .recaptcha label{ font-size:13px; color:#111; cursor:pointer; }
+  .recaptcha .brand{ position:absolute; bottom:3px; right:8px; font-size:8px; color:#999; }
+
+  .robot-msg{ display:none; font-size:0.68em; color:var(--red); margin-top:6px; text-align:left; }
+  #robotCheck:checked ~ .robot-msg{ display:block; }
+
+  .grid-instructions{ font-size:0.72em; color:#222; margin:16px 0 6px; text-align:left; }
+  .grid-instructions b{ color:#000; }
+  .grid-wrap{
+    display:grid; grid-template-columns:repeat(3, 1fr); gap:3px;
+    background:#555; padding:3px; border:2px solid; border-color:#555 #fff #fff #555;
+  }
+  .grid-wrap input[type="checkbox"]{ display:none; }
+  .tile{
+    display:flex; align-items:center; justify-content:center;
+    height:54px; background:#eee; font-size:24px; cursor:pointer; border:3px solid transparent;
+  }
+  .grid-wrap input:checked + .tile{ border-color:var(--win-blue); background:#dfe8ff; }
+  .captcha-msg{
+    display:none; grid-column:1 / -1; background:#fff; color:var(--red);
+    font-size:11px; padding:5px 3px 2px; text-align:left;
+  }
+  #g1:checked ~ .captcha-msg, #g2:checked ~ .captcha-msg, #g3:checked ~ .captcha-msg,
+  #g4:checked ~ .captcha-msg, #g5:checked ~ .captcha-msg, #g6:checked ~ .captcha-msg,
+  #g7:checked ~ .captcha-msg, #g8:checked ~ .captcha-msg, #g9:checked ~ .captcha-msg{
+    display:block;
+  }
+
+  .verify-btn{
+    display:inline-block; margin-top:14px; padding:6px 22px;
+    font-family:'Tahoma','MS Sans Serif',Arial,sans-serif; font-weight:bold;
+    background:var(--win-gray); border:2px solid; border-color:#fff #555 #555 #fff;
+    color:#000; cursor:pointer;
+  }
+  .verify-btn:active{ border-color:#555 #fff #fff #555; }
+</style>
+</head>
+<body>
+
+<!-- also captcha thing-->
+<div id="captchaGate">
+  <div class="window">
+    <div class="titlebar">
+      <div class="ttl"> Worst Security Check</div>
+      <div class="title-btns"><span>_</span><span>□</span><span>✕</span></div>
+    </div>
+    <div class="window-body">
+      <div class="sub">prove you're not a robot (you might not pass either way)</div>
+
+      <div class="recaptcha">
+        <div class="dodge-zone">
+          <input type="checkbox" id="robotCheck">
+        </div>
+        <label for="robotCheck">I'm not a robot</label>
+        <div class="brand">WorstCAPTCHA</div>
+      </div>
+      <div class="robot-msg">⚠ Suspicious activity detected. (You checked a box. That's the suspicious part.)</div>
+
+      <div class="grid-instructions">Select all squares with a <b>🥔 potato</b>.</div>
+      <div class="grid-wrap">
+        <input type="checkbox" id="g1"><label class="tile" for="g1">🥔</label>
+        <input type="checkbox" id="g2"><label class="tile" for="g2">🍅</label>
+        <input type="checkbox" id="g3"><label class="tile" for="g3">🥔</label>
+        <input type="checkbox" id="g4"><label class="tile" for="g4">🧅</label>
+        <input type="checkbox" id="g5"><label class="tile" for="g5">🥕</label>
+        <input type="checkbox" id="g6"><label class="tile" for="g6">🥔</label>
+        <input type="checkbox" id="g7"><label class="tile" for="g7">🍆</label>
+        <input type="checkbox" id="g8"><label class="tile" for="g8">🥔</label>
+        <input type="checkbox" id="g9"><label class="tile" for="g9">🌽</label>
+        <div class="captcha-msg">Incorrect. Please try again.<br>(there was never a correct answer)</div>
+      </div>
+
+      <button type="button" class="verify-btn" id="verifyBtn">Verify</button>
+    </div>
+  </div>
+</div>
+
+<!--loading screen-->
+<div id="boot">
+  <div class="window">
+    <div class="titlebar">
+      <div class="ttl">💾 WorstOS Setup Thingy</div>
+      <div class="title-btns"><span>_</span><span>□</span><span>✕</span></div>
+    </div>
+    <div class="window-body">
+      <div class="logo-frame">
+        <img class="logo" id="logoImg" src="images/logo.png" alt="WorstOS logo" style="display:none;">
+        <div class="logo-fallback" id="logoFallback">🥔</div>
+      </div>
+
+      <h1 class="wordmark">WorstOS</h1>
+      <div class="sub">"wtf is this" — edition 0.67 (working on it)</div>
+
+      <div class="console">
+        <div class="specs" id="specs">checking for problems... found: yes</div>
+        <div class="status-line" id="bootStatus">Installing update 1 of 47...<span class="cursor-blink">▌</span></div>
+      </div>
+
+      <div class="bar-outer" id="barOuter">
+        <div class="bar-inner" id="bootBar"></div>
+      </div>
+      <div class="pct-row"><span id="pctText">2%</span></div>
+
+      <div class="alert-row">
+        <div class="alert-icon">⚠️</div>
+        <div class="alert-text">DO NOT TURN OFF YOUR COMPUTER (pls)</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<audio id="startupAudio" src="audio/startup.mp3" preload="auto" style="display:none;"></audio>
+
+<script>
+const logoImg = document.getElementById('logoImg');
+const logoFallback = document.getElementById('logoFallback');
+logoImg.addEventListener('load', () => { logoImg.style.display = 'block'; logoFallback.style.display = 'none'; });
+logoImg.addEventListener('error', () => { logoImg.style.display = 'none'; logoFallback.style.display = 'flex'; });
+
+const bootBar = document.getElementById('bootBar');
+const bootStatus = document.getElementById('bootStatus');
+const specs = document.getElementById('specs');
+const pctText = document.getElementById('pctText');
+
+const updates = [
+  "Installing update 1 of infinite...",
+  "Calcualting the mass of 67 potato...",
+  "Downloading more RAM...",
+  "Installing update 12 of infinite...",
+  "Un-installing update 3 of infinite by mistake...",
+  "Reinstalling update 3 of infinite...",
+  "Asking for permission to ask for permission...",
+  "Convincing the fan to spin...",
+  "Installing update 2 of infinite...",
+  "Installing update 12 of infinite (again)...",
+  "Pretending this is normal...",
+  "Finalizing (this may take forever)...",
+];
+const specLines = [
+  "checking for problems... found = yes",
+  "CPU temp = high",
+  "RAM: 8 potatoes detected",
+  "disk health = kill me",
+  "loading bar integrity = questionable",
+  "GPU: potato-powered",
+  "glitches = a little",
+];
+
+let bootPct = 0, upIdx = 0;
+let bootInterval = null;
+
+function setStatus(text){
+  bootStatus.innerHTML = text + '<span class="cursor-blink">▌</span>';
+}
+
+function startBoot(){
+  bootInterval = setInterval(() => {
+    const roll = Math.random();
+    let step;
+    if (roll < 0.22) step = -(Math.random() * 9);
+    else if (roll < 0.32) step = 0;
+    else step = Math.random() * 11;
+
+    bootPct = Math.max(2, Math.min(97, bootPct + step));
+    bootBar.style.width = bootPct + '%';
+    pctText.textContent = Math.round(bootPct) + '%';
+
+    if (Math.random() < 0.35) {
+      upIdx = (upIdx + 1) % updates.length;
+      setStatus(updates[upIdx]);
+    }
+    if (Math.random() < 0.25) {
+      specs.textContent = specLines[Math.floor(Math.random() * specLines.length)];
+    }
+  }, 380);
+
+  setTimeout(() => {
+    clearInterval(bootInterval);
+    bootBar.style.width = '100%';
+    pctText.textContent = '100%';
+    setStatus('Almost there. Click below to (maybe) continue.');
+    const btn = document.createElement('button');
+    btn.className = 'continue-btn';
+    btn.textContent = 'Continue ▶';
+    document.querySelector('#boot .window-body').appendChild(btn);
+
+    let dodges = 0;
+    btn.addEventListener('mouseenter', () => {
+      if (dodges >= 2) return;
+      dodges++;
+      const dx = (Math.random() - 0.5) * 220;
+      const dy = (Math.random() - 0.5) * 60;
+      btn.style.transform = `translate(${dx}px, ${dy}px)`;
+    });
+    btn.addEventListener('click', () => {
+      const startupAudio = document.getElementById('startupAudio');
+      startupAudio.currentTime = 0;
+      startupAudio.play().catch(() => {});
+      document.getElementById('boot').innerHTML = '<h1 style="color:#000;background:#c0c0c0;padding:20px;font-family:Tahoma;">ill put another screen later</h1>';
+    });
+  }, 6200);
+}
+
+/* verify button passes eveything even ifu somehow did the captcha wrong */
+document.getElementById('verifyBtn').addEventListener('click', () => {
+  document.getElementById('captchaGate').style.display = 'none';
+  document.getElementById('boot').style.display = 'flex';
+  startBoot();
+});
+</script>
+</body>
+</html>
