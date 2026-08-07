@@ -8,6 +8,10 @@ WorstOS is a bum ahh operating system built to make every interaction as frustra
 
 
 ## Want to try?
+Either:
+https://worstwebos.vercel.app/
+
+OR
 
 1. Clone this repository:
 
