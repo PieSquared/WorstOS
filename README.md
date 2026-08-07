@@ -28,5 +28,7 @@ OR
 
 > WorstOS is  terrible.
 
+AI WAS USED IN THIS PROJECT 
+purpose: Bug fixing and effects
 ---
 
