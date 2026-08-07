@@ -1,10 +1,6 @@
 const ui = {
-  logoImg: document.getElementById('logoImg'),
-  logoFallback: document.getElementById('logoFallback'),
   desktopBg: document.getElementById('desktopBg'),
   boot: document.getElementById('boot'),
-  welcomeScreen: document.getElementById('welcomeScreen'),
-  enterBtn: document.getElementById('enterBtn'),
   bootBar: document.getElementById('bootBar'),
   bootStatus: document.getElementById('bootStatus'),
   specs: document.getElementById('specs'),
@@ -31,11 +27,22 @@ function playAudio(key) {
   audio.play().catch(() => {});
 }
 
-ui.logoImg.addEventListener('load', () => { ui.logoImg.style.display = 'block'; ui.logoFallback.style.display = 'none'; });
-ui.logoImg.addEventListener('error', () => { ui.logoImg.style.display = 'none'; ui.logoFallback.style.display = 'flex'; });
+function showDesktopBackground() {
+  if (ui.desktopBg) {
+    ui.desktopBg.style.display = 'block';
+  }
+}
 
-ui.desktopBg.addEventListener('load', () => { ui.desktopBg.style.display = 'block'; });
-ui.desktopBg.addEventListener('error', () => { ui.desktopBg.style.display = 'none'; });
+if (ui.desktopBg) {
+  ui.desktopBg.addEventListener('load', showDesktopBackground);
+  ui.desktopBg.addEventListener('error', () => {
+    if (ui.desktopBg) ui.desktopBg.style.display = 'none';
+  });
+
+  if (ui.desktopBg.complete && ui.desktopBg.naturalWidth > 0) {
+    showDesktopBackground();
+  }
+}
 
 const updates = [
   "Installing update 1 of infinite...",
@@ -97,59 +104,114 @@ function startBoot(){
     clearInterval(bootState.interval);
     if (ui.bootBar) ui.bootBar.style.width = '100%';
     if (ui.pctText) ui.pctText.textContent = '100%';
-    setStatus('Almost there. Click below to (maybe) continue.');
-    const target = document.querySelector('#boot .window-body') || ui.boot;
-    if (target) {
-      const btn = document.createElement('button');
-      btn.className = 'continue-btn';
-      btn.textContent = 'Continue ▶';
-      btn.style.position = 'fixed';
-      btn.style.right = '32px';
-      btn.style.bottom = '32px';
-      btn.style.zIndex = '1001';
-      btn.style.transition = 'transform 0.2s ease-out';
-      document.body.appendChild(btn);
-
-      let dodges = 0;
-      btn.addEventListener('mouseenter', () => {
-        if (dodges >= 6) return;
-        dodges++;
-        const dx = (Math.random() - 0.5) * 780;
-        const dy = (Math.random() - 0.5) * 420;
-        const maxX = Math.max(0, window.innerWidth - btn.offsetWidth - 40);
-        const maxY = Math.max(0, window.innerHeight - btn.offsetHeight - 40);
-        const nextX = Math.max(0, Math.min(maxX, btn.offsetLeft + dx));
-        const nextY = Math.max(0, Math.min(maxY, btn.offsetTop + dy));
-        btn.style.left = `${nextX}px`;
-        btn.style.top = `${nextY}px`;
-        btn.style.right = 'auto';
-        btn.style.bottom = 'auto';
-      });
-      btn.addEventListener('click', () => {
-        playAudio('startupAudio');
-        btn.remove();
-        ui.boot.style.display = 'none';
-        ui.desktop.style.display = 'block';
-        ui.taskbar.style.display = 'flex';
-        buildStartMenu();
-        startClock();
-        scheduleAnnoyingPopup();
-      });
-    }
-
+    setStatus('Boot complete. Entering desktop...');
+    playAudio('startupAudio');
+    ui.boot.style.display = 'none';
+    ui.desktop.style.display = 'block';
+    ui.taskbar.style.display = 'flex';
+    buildIcons();
+    buildStartMenu();
+    startClock();
+    scheduleAnnoyingPopup();
+    startFacetimeRinger();
+    openApp('welcome', 'Welcome to WorstOS');
   }, 6200);
 }
 
-window.addEventListener('load', () => {
-  ui.welcomeScreen.style.display = 'flex';
-  ui.boot.style.display = 'none';
-});
+const fakeCursor = document.getElementById('fakeCursor');
+if (fakeCursor) {
+  document.addEventListener('mousemove', (e) => {
+    fakeCursor.style.left = `${e.clientX}px`;
+    fakeCursor.style.top = `${e.clientY}px`;
+    fakeCursor.style.opacity = '1';
+  });
+  document.addEventListener('mouseleave', () => {
+    fakeCursor.style.opacity = '0';
+  });
+  window.addEventListener('blur', () => {
+    fakeCursor.style.opacity = '0';
+  });
+}
 
-ui.enterBtn.addEventListener('click', () => {
-  playAudio('startupAudio');
-  ui.welcomeScreen.style.display = 'none';
-  ui.boot.style.display = 'flex';
-  startBoot();
+const biosLines = [
+  'AMIBIOS(C)2020 American Megatrends, Inc.',
+  '',
+  'POTATO BOARD GAMING ACPI BIOS Revision 0.67',
+  'CPU: Potato(R) Core(TM) i-Nothing CPU @ 0.03GHz (POTATO INSIDE)',
+  '  Speed: 1.2GHz (overclocked to 0.03GHz)',
+  '',
+  'Total Memory: 1 potato',
+  '',
+  'USB Devices total: 1 Drive, 0 Keyboards (works anyway), 12 Mice, 1 Hub (on fire)',
+  'USB Drive #0: Definitely_Not_A_Virus 0915',
+  '',
+  '__DETECT__',
+  '',
+  '',
+  'Please enter setup to recover BIOS setting.',
+  'After setting up the potato, some configuration was built,',
+  'SATA Mode Selection must be changed to worse to avoid working issues.',
+  'If OS was previously installed as good, set SATA mode to bad in BIOS.',
+  'Press F1 to Run SETUP (does nothing)',
+];
+
+function typeBiosLines(container, onDone){
+  container.innerHTML = '';
+  const cursor = document.createElement('span');
+  cursor.className = 'bios-cursor';
+  container.appendChild(cursor);
+
+  let i = 0;
+  function next(){
+    if (i >= biosLines.length) {
+      cursor.remove();
+      if (onDone) onDone();
+      return;
+    }
+    const raw = biosLines[i];
+    const line = document.createElement('div');
+    if (raw === '__DETECT__') {
+      line.innerHTML = 'Detected ATA/ATAPI Devices<span class="bios-dots">...</span>';
+    } else {
+      line.textContent = raw === '' ? '\u00A0' : raw;
+    }
+    container.insertBefore(line, cursor);
+    i++;
+    setTimeout(next, raw === '' ? 60 : 90 + Math.random() * 70);
+  }
+  next();
+}
+
+window.addEventListener('load', () => {
+  if (ui.boot) ui.boot.style.display = 'none';
+
+  const bios = document.getElementById('biosScreen');
+  const biosLinesEl = document.getElementById('biosLines');
+  if (bios && biosLinesEl) {
+    bios.style.display = 'flex';
+
+    let advanced = false;
+    function advance(){
+      if (advanced) return;
+      advanced = true;
+      document.removeEventListener('keydown', advance);
+      bios.style.display = 'none';
+      if (ui.boot) ui.boot.style.display = 'flex';
+      startBoot();
+    }
+    document.addEventListener('keydown', advance);
+
+    typeBiosLines(biosLinesEl, () => {
+      const anykey = document.createElement('div');
+      anykey.className = 'bios-anykey';
+      anykey.innerHTML = 'Press any key to continue<span class="bios-dots">...</span>';
+      biosLinesEl.appendChild(anykey);
+      setTimeout(advance, 1800);
+    });
+  } else {
+    if (ui.boot) ui.boot.style.display = 'flex';
+    startBoot();
+  }
 });
 
 /* CAPTCHA  */
@@ -177,11 +239,15 @@ ui.verifyBtn.addEventListener('click', () => {
 /*  DESKTOP */
 ui.desktop.addEventListener('click', () => {
   ui.startMenu.style.display = 'none';
+  document.querySelectorAll('#icons .icon.selected').forEach(icon => icon.classList.remove('selected'));
 });
 
 function buildStartMenu(){
   const list = ui.startMenuList;
   list.innerHTML = `
+    <li onclick="openApp('terminal','Command Prompt')">🖥️ Terminal</li>
+    <li onclick="openApp('facetime','FaceTime')">📞 FaceTime</li>
+    <li onclick="openApp('virus','Definitely_Not_A_Virus.exe')">☣️ Definitely_Not_A_Virus.exe</li>
     <li>🔌 Shut Down
       <div class="submenu"><ul>
         <li onclick="confirmShutdown(1)">Restart</li>
@@ -224,12 +290,54 @@ function startClock(){
   setInterval(tick, 4000 + Math.random()*3000);
 }
 
+/* desktop icons */
+const iconDefs = [
+  { label: 'Terminal', glyph: '🖥️', image: 'images/desktop/terminal.png', app: 'terminal' },
+  { label: 'FaceTime', glyph: '📞', image: 'images/desktop/ft.png', app: 'facetime' },
+  { label: 'Definitely_Not_A_Virus', glyph: '☣️', image: 'images/desktop/virus.png', app: 'virus' },
+];
+function buildIcons(){
+  const wrap = document.getElementById('icons');
+  wrap.innerHTML = '';
+  iconDefs.forEach(def => {
+    const el = document.createElement('div');
+    el.className = 'icon';
+    const glyphMarkup = def.image
+      ? `<img class="glyph" src="${def.image}" alt="${def.label}" style="width:44px;height:44px;object-fit:contain;">`
+      : `<div class="glyph">${def.glyph}</div>`;
+    el.innerHTML = `${glyphMarkup}<div class="label">${def.label}</div>`;
+    let clicks = 0, clickTimer;
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      document.querySelectorAll('#icons .icon.selected').forEach(icon => icon.classList.remove('selected'));
+      el.classList.add('selected');
+      clicks++;
+      clearTimeout(clickTimer);
+      clickTimer = setTimeout(() => clicks = 0, 400);
+      if (clicks >= 2) {
+        clicks = 0;
+        openApp(def.app, def.label);
+      }
+    });
+    wrap.appendChild(el);
+  });
+}
+
+function openApp(kind, title){
+  ui.startMenu.style.display = 'none';
+  const id = kind + Date.now();
+  if (kind === 'terminal') openTerminal(id, title);
+  else if (kind === 'welcome') openWelcome(id, title);
+  else if (kind === 'facetime') openFacetime(id, title);
+  else if (kind === 'virus') openVirus(id, title);
+}
+
 /* window manager for future use  */
 let zTop = 100;
 let winCount = 0;
 const openWins = {};
 
-function makeWindow(id, title, contentHTML, w=380, h=320){
+function makeWindow(id, title, contentHTML, w=380, h=320, appKind='generic', appIcon=''){
   const win = document.createElement('div');
   win.className = 'app-win';
   win.style.width = w + 'px';
@@ -276,7 +384,7 @@ function makeWindow(id, title, contentHTML, w=380, h=320){
   win.querySelector('.minBtn').addEventListener('click', () => { win.style.display = 'none'; });
   win.querySelector('.maxBtn').addEventListener('click', () => {});
 
-  openWins[id] = { el: win, title };
+  openWins[id] = { el: win, title, kind: appKind, icon: appIcon };
   renderTaskbar();
   return win;
 }
@@ -291,7 +399,10 @@ function renderTaskbar(){
   Object.entries(openWins).forEach(([id, info]) => {
     const item = document.createElement('div');
     item.className = 'taskitem';
-    item.textContent = info.title;
+    const iconMarkup = info.icon
+      ? `<img src="${info.icon}" alt="" class="task-icon">`
+      : `<span class="task-icon">▣</span>`;
+    item.innerHTML = `${iconMarkup}<span class="task-label">${info.title}</span>`;
     item.addEventListener('click', () => {
       info.el.style.display = 'block';
       bringToFront(info.el);
@@ -299,6 +410,8 @@ function renderTaskbar(){
     bar.appendChild(item);
   });
 }
+
+
 
 /* annoying popups, each tagged error or notification for sound purposes */
 const popupMsgs = [
@@ -311,7 +424,7 @@ const popupMsgs = [
 let popupCount = 0;
 function scheduleAnnoyingPopup(){
   setTimeout(() => {
-    if (popupCount < 8 && Math.random() < 0.85) spawnPopup();
+    if (Math.random() < 0.85) spawnPopup();
     scheduleAnnoyingPopup();
   }, 6000 + Math.random()*7000);
 }
@@ -363,11 +476,11 @@ function spawnPopup(){
 
   function remove(){ p.remove(); popupCount--; }
   p.querySelector('.closeX').addEventListener('click', () => {
-    if (Math.random() < 0.4 && popupCount < 5) spawnPopup();
+    if (Math.random() < 0.4) spawnPopup();
     remove();
   });
   p.querySelector('.dismiss').addEventListener('click', () => {
-    if (Math.random() < 0.4 && popupCount < 5) spawnPopup();
+    if (Math.random() < 0.4) spawnPopup();
     remove();
   });
 }
