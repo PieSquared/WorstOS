@@ -3,14 +3,14 @@ let virusAudioPlayers = [];
 const VIRUS_FAKE_FILES = [
   'my_hopes_and_dreams.txt',
   'potato.sys',
-  'cookies.dll,
+  'cookies.dll',
   'your_boot_sector.dll',
   'the_last_save_file.dat',
   'totally_not_important.exe',
   'System32',
   'Definitely_Not_A_Virus.exe',
   'homework_final_FINAL_v3.docx',
-  'C:\\Users\\Guest\\password.exe,
+  'C:\\Users\\Guest\\password.exe',
   'one_(1)_potato.png',
   'passwords_definitely_not_here.txt',
 ];
